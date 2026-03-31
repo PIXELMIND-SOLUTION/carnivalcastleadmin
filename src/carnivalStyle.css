@@ -1,0 +1,99 @@
+/* .primary{
+    color: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+}
+
+.btn-outline{
+    color: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    border: none !important;
+}
+
+.btn-primary{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+    border: none !important;
+}
+
+.btn-primary:hover{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+    border: none !important;
+}
+
+.bg-primary{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+}
+
+.pagination > li.active > a {
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+}
+
+.pagination {
+    color: black !important;
+}
+
+.btn-info{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+    border: none !important;
+} */
+
+.btn-primary {
+    color: #000 !important;
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    border-color:#d9be73 !important;
+}
+
+.booknow-btn{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    border-color:#d9be73 !important;
+}
+
+.booknow-text{
+    color: black !important;
+}
+
+.btn-primary:hover{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+    border: none !important;
+}
+
+.bg-primary{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    color: black !important;
+}
+
+.btn-outline-primary:hover{
+    border-color: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+}
+
+/* .btn-outline-primary:hover {
+    color: black !important;
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    border-color:#d9be73 !important;
+} */
+
+
+/* .pagination > li.active > a {
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    border-color:#d9be73 !important;
+    color: black !important;
+} */
+
+.pricing-bodyss{
+    background: linear-gradient(105deg, rgba(191, 149, 63, 1) 0%, rgba(252, 246, 186, 1) 28%, rgba(195, 156, 76, 1) 66%, rgba(203, 165, 79, 1) 79%, rgba(255, 233, 144, 1) 94%) !important;
+    border-color:#d9be73 !important;
+    color: black !important;
+}
+
+h1,h2,h3,h4,h5,h6{
+    color: black !important;
+}
+
+/* viewbookingslots in cards for the border colr */
+#bgshadow.selected {
+    border-color: #d9be73 !important;
+  }
+  
