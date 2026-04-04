@@ -21,6 +21,7 @@ import {
   Label,
   Input,
 } from "reactstrap"
+
 const CakesComponent = () => {
   var gets = localStorage.getItem("authUser")
   var data123 = JSON.parse(gets)
@@ -35,6 +36,7 @@ const CakesComponent = () => {
   const [normalCakes, setNormalCakes] = useState([]) // EGG
   const [premiumCakes, setPremiumCakes] = useState([]) // EGGLESS
   const [isEggless, setIsEggless] = useState(false) // Toggleeeee
+  const [cakeCategory, setCakeCategory] = useState("all") // New state for premium/normal filter: "all", "normal", "premium"
 
   const [selectedCakesupdate, setSelectedCakesupdate] = useState([]) //  Select Cakes
   console.log(selectedCakes)
@@ -92,7 +94,19 @@ const CakesComponent = () => {
     }
   }, [])
 
-  const combineCakes = isEggless ? premiumCakes : normalCakes
+  // Filter cakes based on premium/normal selection
+  const getFilteredCakes = () => {
+    let baseCakes = isEggless ? premiumCakes : normalCakes
+    
+    if (cakeCategory === "normal") {
+      return baseCakes.filter(cake => cake.cakePremiumOrNormal === "normal")
+    } else if (cakeCategory === "premium") {
+      return baseCakes.filter(cake => cake.cakePremiumOrNormal === "premium")
+    }
+    return baseCakes // "all" - return all cakes
+  }
+
+  const combineCakes = getFilteredCakes()
 
   // Initialize CartCakes as an empty array by default
   const [CartCakes, setCartCakes] = useState(() => {
@@ -106,12 +120,6 @@ const CakesComponent = () => {
   console.log(selectedWeights)
 
   const handleImageClick = (cake, index) => {
-    // const { _id } = cake;
-    // setSelectedWeights((prevWeights) => ({
-    //   ...prevWeights,
-    //   [_id]: "500", // Default weight
-    // }));
-
     setSelectedWeights(prevWeights => {
       const updatedWeights = {
         ...prevWeights,
@@ -149,133 +157,9 @@ const CakesComponent = () => {
     })
   }
 
-  // const handleImageClick = (cake, index) => {
-  //   setSelectedWeights((prevWeights) => ({
-  //     ...prevWeights,
-  //     [index]: "500", // Default weight when image is clicked
-  //   }));
-  //   // Retrieve cake price and total price from localStorage (initialize if not available)
-  //   var cakeprice = parseFloat(sessionStorage.getItem("cakeprice")) || 0;
-  //   var TotalPrice = parseFloat(sessionStorage.getItem("TotalPrice")) || 0;
-
-  //   var subtotal = parseFloat(sessionStorage.getItem("subtotal")) || 0;
-
-  //   // Toggle selected cakes
-  //   setSelectedCakes((prevSelectedCakes) => {
-  //     console.log(prevSelectedCakes, "prevSelectedCakes");
-
-  //     if (prevSelectedCakes.includes(cake)) {
-  //       TotalPrice = TotalPrice - cake.price;
-  //       subtotal = subtotal - cake.price;
-  //       var CouponData = JSON.parse(sessionStorage.getItem("CouponData"));
-  //       if (CouponData) {
-  //         if (CouponData.couponCodeType === "Percentage") {
-  //           var discount = (subtotal * CouponData.couponAmount) / 100;
-  //           sessionStorage.setItem("coupondis", discount);
-  //           TotalPrice = subtotal - discount;
-  //         }
-  //       }
-  //       // Deselect: update prices and remove from selectedCakes
-  //       // sessionStorage.setItem("cakeprice", cakeprice - cake.price);
-  //       // sessionStorage.setItem("TotalPrice", TotalPrice);
-  //       // sessionStorage.setItem("subtotal", subtotal);
-  //       const updcart = prevSelectedCakes.filter((item) => item._id !== cake._id);
-
-  //       // console.log(updcart, "updcart");
-  //       // sessionStorage.setItem("cartCakes", JSON.stringify(updcart));
-
-  //       return updcart;
-  //     } else {
-  //       TotalPrice = TotalPrice + cake.price;
-  //       subtotal = parseFloat(subtotal) + cake.price;
-  //       var CouponData = JSON.parse(sessionStorage.getItem("CouponData"));
-
-  //       if (CouponData) {
-  //         if (CouponData.couponCodeType === "Percentage") {
-  //           var discount = (subtotal * CouponData.couponAmount) / 100;
-  //           sessionStorage.setItem("coupondis", discount);
-  //           console.log("coupondis", discount);
-  //           TotalPrice = subtotal - discount;
-  //         }
-  //       }
-
-  //       // Select: update prices and add to selectedCakes
-  //       // sessionStorage.setItem("cakeprice", cakeprice + cake.price);
-
-  //       // sessionStorage.setItem("TotalPrice", TotalPrice);
-
-  //       // sessionStorage.setItem("subtotal", subtotal);
-
-  //       return [...prevSelectedCakes, cake];
-  //     }
-  //   });
-
-  //   if (IDS.length > 0) {
-  //     // Check if occasion._id is already in the IDS array of objects
-  //     const index = IDS.findIndex((obj) => String(obj.id) === String(cake._id));
-
-  //     if (index !== -1) {
-  //       // Create a new array without the matched object
-  //       const newIDS = [...IDS.slice(0, index), ...IDS.slice(index + 1)];
-  //       setIDS(newIDS); // Update state
-  //     } else {
-  //       // If not found, push a new object with cake._id into the existing array
-  //       setIDS([...IDS, { id: cake._id, price: cake.price, name: cake.name }]);
-  //     }
-  //   } else {
-  //     // If IDS is empty, push an object with cake._id into the array
-  //     setIDS([{ id: cake._id, price: cake.price, name: cake.name }]);
-  //   }
-
-  //   // Update CartCakes with add/remove logic
-  //   setCartCakes((prevCartCakes) => {
-  //     const cakeInCart = prevCartCakes.some(
-  //       (item) => item._id === cake._id.toString()
-  //     );
-
-  //     if (cakeInCart) {
-  //       // Deselect: remove cake from CartCakes
-  //       const updatedCart = prevCartCakes.filter(
-  //         (item) => item._id !== cake._id.toString()
-  //       );
-  //       // sessionStorage.setItem("cartCakes", JSON.stringify(updatedCart));
-  //       return updatedCart;
-  //     } else {
-  //       // Select: add cake to CartCakes with default quantity
-  //       const newCake = {
-  //         id: cake._id.toString(),
-  //         name: cake.name,
-  //         quantity: "500", // Default quantity or based on user's input
-  //         price: cake.price,
-  //       };
-  //       const updatedCart = [...prevCartCakes, newCake];
-  //       setSelectedCakesupdate(updatedCart);
-  //       // sessionStorage.setItem("cartCakes", JSON.stringify(updatedCart));
-  //       return updatedCart;
-  //     }
-  //   });
-
-  //   // Smooth scroll to additional images
-  //   setTimeout(() => {
-  //     additionalImagesRef.current?.scrollIntoView({
-  //       behavior: "smooth",
-  //       block: "start",
-  //     });
-  //   }, 200);
-  // };
-
   const handleClick = () => {
     history.push("/occations")
   }
-
-  // const handleChange = (event, cake) => {
-  //   const selectedWeight = event.target;
-
-  //   setSelectedWeights((prevWeights) => ({
-  //     ...prevWeights,
-  //     [cake._id]: selectedWeight,
-  //   }));
-  // };
 
   const handleChange = async (event, index, cake) => {
     setCartCakes(JSON.parse(sessionStorage.getItem("cartCakes")))
@@ -332,11 +216,6 @@ const CakesComponent = () => {
         TotalPrice = subtotal - discount
       }
     }
-
-    // Set the updated prices back to local storage
-    // sessionStorage.setItem("cakeprice", cakeprice);
-    // sessionStorage.setItem("TotalPrice", TotalPrice);
-    // sessionStorage.setItem("subtotal", subtotal);
 
     var cakes = JSON.parse(sessionStorage.getItem("cartCakes"))
     // Update the selected cake in the cart with the new weight and price
@@ -405,6 +284,63 @@ const CakesComponent = () => {
     history.push("/addonsthings")
   }
 
+  // Button styles for claymorphism
+  const buttonStyles = {
+    allButton: {
+      background: cakeCategory === "all" 
+        ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" 
+        : "rgba(255, 255, 255, 0.25)",
+      border: "none",
+      borderRadius: "12px",
+      padding: "12px 28px",
+      fontSize: "16px",
+      fontWeight: "600",
+      color: cakeCategory === "all" ? "white" : "#333",
+      boxShadow: cakeCategory === "all" 
+        ? "0 8px 20px rgba(102, 126, 234, 0.3)" 
+        : "0 4px 15px rgba(0, 0, 0, 0.1)",
+      backdropFilter: cakeCategory === "all" ? "none" : "blur(10px)",
+      transition: "all 0.3s ease",
+      marginRight: "15px",
+      cursor: "pointer",
+    },
+    normalButton: {
+      background: cakeCategory === "normal" 
+        ? "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" 
+        : "rgba(255, 255, 255, 0.25)",
+      border: "none",
+      borderRadius: "12px",
+      padding: "12px 28px",
+      fontSize: "16px",
+      fontWeight: "600",
+      color: cakeCategory === "normal" ? "white" : "#333",
+      boxShadow: cakeCategory === "normal" 
+        ? "0 8px 20px rgba(240, 147, 251, 0.3)" 
+        : "0 4px 15px rgba(0, 0, 0, 0.1)",
+      backdropFilter: cakeCategory === "normal" ? "none" : "blur(10px)",
+      transition: "all 0.3s ease",
+      marginRight: "15px",
+      cursor: "pointer",
+    },
+    premiumButton: {
+      background: cakeCategory === "premium" 
+        ? "linear-gradient(135deg, #fa709a 0%, #fee140 100%)" 
+        : "rgba(255, 255, 255, 0.25)",
+      border: "none",
+      borderRadius: "12px",
+      padding: "12px 28px",
+      fontSize: "16px",
+      fontWeight: "600",
+      color: cakeCategory === "premium" ? "white" : "#333",
+      boxShadow: cakeCategory === "premium" 
+        ? "0 8px 20px rgba(250, 112, 154, 0.3)" 
+        : "0 4px 15px rgba(0, 0, 0, 0.1)",
+      backdropFilter: cakeCategory === "premium" ? "none" : "blur(10px)",
+      transition: "all 0.3s ease",
+      cursor: "pointer",
+    }
+  }
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -425,11 +361,6 @@ const CakesComponent = () => {
                   }}
                 >
                   <div>
-                    {/* <img
-              src="assets/img/gipss.gif"
-              style={{ height: "300px" }}
-              alt="Loading"
-            /> */}
                     <h6 style={{ color: "white" }}>Loading...</h6>
                   </div>
                 </div>
@@ -448,38 +379,106 @@ const CakesComponent = () => {
                           type="button"
                           className="btn bg-primary"
                           onClick={handleClick}
+                          style={{
+                            marginBottom: "20px",
+                            borderRadius: "10px",
+                            padding: "10px 24px",
+                            fontWeight: "500",
+                            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                          }}
                         >
-                          {" "}
                           <i className="far fa-arrow-alt-circle-left"></i> Back
                         </button>
                         <div className="row mb-4">
                           {/* Cakes Selection */}
-                          <div className="col-md-8 ">
-                            <div className="d-flex align-items-center m-3">
-                              <h5 style={{ marginRight: "20px" }}>
-                                Select Cake
-                              </h5>
-                              <FormGroup switch>
-                                <Input
-                                  type="switch"
-                                  role="switch"
-                                  id="egglessSwitch"
-                                  // checked={isEggless}
-                                  onChange={() => setIsEggless(!isEggless)}
-                                />
-                                <Label check htmlFor="egglessSwitch">
-                                  {isEggless ? "Eggless" : "Egg"}
-                                </Label>
-                              </FormGroup>
+                          <div className="col-md-12">
+                            <div className="d-flex align-items-center justify-content-between flex-wrap m-3">
+                              <div className="d-flex align-items-center mb-3 mb-md-0">
+                                <h5 style={{ marginRight: "20px", marginBottom: "0", fontWeight: "600" }}>
+                                  Select Cake
+                                </h5>
+                                <FormGroup switch style={{ marginBottom: "0" }}>
+                                  <Input
+                                    type="switch"
+                                    role="switch"
+                                    id="egglessSwitch"
+                                    onChange={() => setIsEggless(!isEggless)}
+                                    style={{ cursor: "pointer" }}
+                                  />
+                                  <Label check htmlFor="egglessSwitch" style={{ cursor: "pointer", fontWeight: "500" }}>
+                                    {isEggless ? "🥚 Eggless" : "🥚 Egg"}
+                                  </Label>
+                                </FormGroup>
+                              </div>
+                              
+                              {/* Premium/Normal Buttons with Claymorphism */}
+                              <div className="d-flex align-items-center" style={{ gap: "15px" }}>
+                                <button
+                                  type="button"
+                                  style={buttonStyles.allButton}
+                                  onClick={() => setCakeCategory("all")}
+                                  onMouseEnter={(e) => {
+                                    if (cakeCategory !== "all") {
+                                      e.currentTarget.style.transform = "translateY(-2px)"
+                                      e.currentTarget.style.boxShadow = "0 12px 25px rgba(0,0,0,0.15)"
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (cakeCategory !== "all") {
+                                      e.currentTarget.style.transform = "translateY(0)"
+                                      e.currentTarget.style.boxShadow = "0 4px 15px rgba(0,0,0,0.1)"
+                                    }
+                                  }}
+                                >
+                                  🎂 All Cakes
+                                </button>
+                                <button
+                                  type="button"
+                                  style={buttonStyles.normalButton}
+                                  onClick={() => setCakeCategory("normal")}
+                                  onMouseEnter={(e) => {
+                                    if (cakeCategory !== "normal") {
+                                      e.currentTarget.style.transform = "translateY(-2px)"
+                                      e.currentTarget.style.boxShadow = "0 12px 25px rgba(0,0,0,0.15)"
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (cakeCategory !== "normal") {
+                                      e.currentTarget.style.transform = "translateY(0)"
+                                      e.currentTarget.style.boxShadow = "0 4px 15px rgba(0,0,0,0.1)"
+                                    }
+                                  }}
+                                >
+                                  🍰 Normal Cakes
+                                </button>
+                                <button
+                                  type="button"
+                                  style={buttonStyles.premiumButton}
+                                  onClick={() => setCakeCategory("premium")}
+                                  onMouseEnter={(e) => {
+                                    if (cakeCategory !== "premium") {
+                                      e.currentTarget.style.transform = "translateY(-2px)"
+                                      e.currentTarget.style.boxShadow = "0 12px 25px rgba(0,0,0,0.15)"
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (cakeCategory !== "premium") {
+                                      e.currentTarget.style.transform = "translateY(0)"
+                                      e.currentTarget.style.boxShadow = "0 4px 15px rgba(0,0,0,0.1)"
+                                    }
+                                  }}
+                                >
+                                  👑 Premium Cakes
+                                </button>
+                              </div>
                             </div>
-                            {/* <div className="alert alert-warning m-3"> */}
-                            {/* <i className="fa fa-exclamation-triangle me-2" style={{ color: 'red' }}></i> */}
-                            <span style={{ color: "red" }}>
-                              <b>ATTENTION:</b> The images presented are solely
-                              for display purposes. The actual cake may vary in
-                              appearance."
-                            </span>
-                            {/* </div> */}
+                            
+                            <div className="alert alert-warning m-3" style={{ borderRadius: "10px", border: "1px solid #ffc107", backgroundColor: "#fff3cd" }}>
+                              <i className="fa fa-exclamation-triangle me-2" style={{ color: '#856404' }}></i>
+                              <span style={{ color: "#856404", fontSize: "14px" }}>
+                                <b>ATTENTION:</b> The images presented are solely for display purposes. The actual cake may vary in appearance.
+                              </span>
+                            </div>
                           </div>
 
                           {/* Cakes Display */}
@@ -487,33 +486,41 @@ const CakesComponent = () => {
                             <div className="row justify-content-center">
                               {combineCakes.map((cake, index) => (
                                 <div
-                                  // className="col-lg-4 col-sm-12 col-12 mb-1 mt-2"
-                                  // className="col-6 col-md-3 mb-1 mt-3 text-center"
-                                  className="col-lg-4 col-sm-6 col-6 mb-1 mt-2"
+                                  className="col-lg-4 col-sm-6 col-6 mb-4 mt-2"
                                   key={index}
                                 >
                                   <div
                                     className="card shadow-lg mx-auto"
                                     style={{
-                                      // height: "74%",
                                       height: "auto",
                                       cursor: "pointer",
-                                      width: "90%",
+                                      width: "95%",
                                       position: "relative",
                                       marginBottom: "12px",
-                                      cursor: "pointer",
-                                      border: "2px solid #F5E7B6",
+                                      border: selectedCakes.some(cake2 => String(cake2._id) === String(cake._id)) 
+                                        ? "3px solid #ff6b6b" 
+                                        : "2px solid #F5E7B6",
+                                      borderRadius: "15px",
+                                      overflow: "hidden",
+                                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                                      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
                                     }}
-                                    onClick={() =>
-                                      handleImageClick(cake, index)
-                                    }
+                                    onClick={() => handleImageClick(cake, index)}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.transform = "translateY(-5px)"
+                                      e.currentTarget.style.boxShadow = "0 15px 30px rgba(0,0,0,0.15)"
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.transform = "translateY(0)"
+                                      e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"
+                                    }}
                                   >
                                     <img
                                       src={URLS.Base + cake.image}
                                       className="card-img-top"
                                       alt={cake.name}
                                       style={{
-                                        height: "150px",
+                                        height: "180px",
                                         objectFit: "cover",
                                       }}
                                     />
@@ -528,57 +535,84 @@ const CakesComponent = () => {
                                           ? "card-body text-white cakebackground"
                                           : "card-body text-white"
                                       }
-                                      // className="card-body bg-dark text-white "
-                                      // style={{
-                                      //   background:
-                                      //     selectedCakes.includes(cake) ||
-                                      //     newCakes.find(
-                                      //       (cartCake) =>
-                                      //         String(cartCake._id) === cake._id
-                                      //     )
-                                      //       ? "var(--gold-gradient) !important" // MILK
-                                      //       : "#212529", // dark
-                                      //   borderRadius: "3px",
-                                      // }}
-
-                                      // className=
+                                      style={{
+                                        background: selectedCakes.some(cake2 => String(cake2._id) === String(cake._id))
+                                          ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                                          : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                        borderRadius: "0 0 15px 15px",
+                                      }}
                                     >
-                                      <h6 className="card-title d-flex align-items-center">
-                                        {cake.name}
-                                        {isEggless && (
-                                          <span
-                                            className="badge bg-success ms-2"
-                                            style={{
-                                              position: "absolute",
-                                              top: "10px",
-                                              right: "10px",
-                                            }}
-                                          >
-                                            Eggless
-                                          </span>
-                                        )}
-                                        <img
-                                          src={
-                                            isEggless
-                                              ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAABbUlEQVR4nGNgGDZAdH6Fh9iCisfiCyv+k40XVPwTW1hxRnRBiTKGBWILyx9RZPhCFIuWYlgAk6QoFBaVWUEtOEoTC8QXVZiDzBBbUH6CJhZILqgwBluwsOIMSRaILSz3F1tYsV9sQcUXMF5Yvk98YYUPujrRReX60CC6QLQFYgsrOvBEaDOKGYsqdaBBdJkoC8QWVQYQSjESCyu84EE0v1IDEkTl14mzYEH5AcLJsnwPTL3IvFJVqPgt4ixYWP6ViHT/Aa5+boUSNIjuEemDii9E+OA9PIgWlstBLKh4SL0gWlCxG6ZeeE6pFFT8KbFB5E8wkheUecLVL6sUh/rgJVEWQIOpHY/rG5HVSi2sEIbGwRuiLQAB8UXlvmILKvaKLyj/LL6w4hMo5SAnTxgQnFnOjx7x1C3sVtXzQHxW/pkmFsisKuSExsE3mljAMDONFWrOL9pWOAsr7mKvMqlgidiC8gdiCytcKAqJQQUAHGz+5dhaYC0AAAAASUVORK5CYII="
-                                              : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAABW0lEQVR4nN2VP0sDQRDF01gIgoWFYGGhCBaCxRWGS/LeXXKFihK/kljoF/FT+LcRLFIIFoKgaDTZPRUVEy0sjOSYO84YzWruQBzYZvYxP+bNsJvJ/JvwyXkNXGmy9dujyDcNVHzXnfwE0GS1n+L6I2izGyC47MuFQsEWwEEqAOU4c0Ed4DAVQN11LQFUfgTQjlPWwJ4GmsEhdxW51KnzXXc2sAg4MgZocuPLYQJrca0iZ6SDYyOAJld6bUwdWAz1NXJaACdmAGC/50oC26H+BpiSLTo17eDZAPAY6fP5Ccmfm3bQNAA8RBblcuOSv0zSoq1Qf2vbY2JRzQzgOGWDIS9E+mJxVPK+EUC6WP/mzVmNa69LpRHZojtjQDsUsKzJHQU0FPnU3pz4eoZx73nDnYNP9rEjhwTQSAVQzWYHpc5LKoCWZQ3IbF7T/nDOun+ZSUCAC016/Tjxt+IdjFUzfH0mcf4AAAAASUVORK5CYII="
-                                          }
-                                          style={{
-                                            width: "20px",
-                                            height: "auto",
-                                          }}
-                                          className="ms-2"
-                                          alt="icon"
-                                        />
+                                      <h6 className="card-title d-flex align-items-center justify-content-between">
+                                        <span style={{ fontSize: "14px", fontWeight: "600" }}>
+                                          {cake.name}
+                                        </span>
+                                        <div>
+                                          {isEggless && (
+                                            <span
+                                              className="badge"
+                                              style={{
+                                                backgroundColor: "#28a745",
+                                                marginRight: "5px",
+                                                fontSize: "10px",
+                                                padding: "5px 8px",
+                                                borderRadius: "20px",
+                                              }}
+                                            >
+                                              🥚 Eggless
+                                            </span>
+                                          )}
+                                          {cake.cakePremiumOrNormal === "premium" && (
+                                            <span
+                                              className="badge"
+                                              style={{
+                                                background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+                                                color: "#000",
+                                                fontSize: "10px",
+                                                padding: "5px 8px",
+                                                borderRadius: "20px",
+                                                fontWeight: "bold",
+                                              }}
+                                            >
+                                              👑 Premium
+                                            </span>
+                                          )}
+                                          {cake.cakePremiumOrNormal === "normal" && (
+                                            <span
+                                              className="badge"
+                                              style={{
+                                                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                                                color: "#fff",
+                                                fontSize: "10px",
+                                                padding: "5px 8px",
+                                                borderRadius: "20px",
+                                                fontWeight: "bold",
+                                              }}
+                                            >
+                                              🍰 Normal
+                                            </span>
+                                          )}
+                                        </div>
                                       </h6>
+                                      <div className="mt-2">
+                                        <small style={{ fontSize: "12px", opacity: "0.9" }}>
+                                          ₹{cake.price} (500g)
+                                        </small>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div
-                                    style={{ padding: "0px 15px 15px 15px" }}
-                                  >
+                                  <div style={{ padding: "0px 15px 15px 15px" }}>
                                     <select
                                       className="form-select form-select-sm"
-                                      // disabled={!selectedCakes.length || !selectedCakes.includes(cake)}
+                                      style={{
+                                        borderRadius: "10px",
+                                        border: "1px solid #ddd",
+                                        padding: "8px",
+                                        fontSize: "13px",
+                                        cursor: "pointer",
+                                        background: selectedCakes.some(cake2 => String(cake2._id) === String(cake._id))
+                                          ? "#fff"
+                                          : "#f8f9fa",
+                                      }}
                                       disabled={
                                         !selectedCakes.some(
                                           cake2 =>
@@ -587,38 +621,25 @@ const CakesComponent = () => {
                                         )
                                       }
                                       value={selectedWeights[cake._id] || "500"}
-                                      // value={
-                                      //   selectedCakes.includes(cake)
-                                      //     ? selectedWeights[index] ||
-                                      //       newCakes.find(
-                                      //         (cartCake) =>
-                                      //           String(cartCake._id) ===
-                                      //           String(cake._id)
-                                      //       )?.quantity
-                                      //     : "500"
-                                      // }
                                       onChange={event =>
                                         handleChange(event, index, cake)
                                       }
                                     >
-                                      {/* {cake?.cakelengths.map((data, index)=>(
-
-                              <option key={index} value={data.value}>{data.value}</option>
-                              ))} */}
-                                      <option value="500">500 gm</option>
-                                      <option value="1">1 kg</option>
-                                      <option value="2">2 kg</option>
-                                      <option value="3">3 kg</option>
+                                      <option value="500">🍰 500 gm</option>
+                                      <option value="1">🎂 1 kg</option>
+                                      <option value="2">🍰 2 kg</option>
+                                      <option value="3">🎂 3 kg</option>
                                     </select>
                                   </div>
                                 </div>
                               ))}
                             </div>
-                            <span style={{ color: "red" }}>
-                              <b>ATTENTION :</b> The images presented are solely
-                              for display purposes. The actual cake may vary in
-                              appearance.
-                            </span>
+                            <div className="alert alert-warning mt-3" style={{ borderRadius: "10px", border: "1px solid #ffc107", backgroundColor: "#fff3cd" }}>
+                              <i className="fa fa-exclamation-triangle me-2" style={{ color: '#856404' }}></i>
+                              <span style={{ color: "#856404", fontSize: "14px" }}>
+                                <b>ATTENTION :</b> The images presented are solely for display purposes. The actual cake may vary in appearance.
+                              </span>
+                            </div>
                           </div>
 
                           {/* Summary Section */}
@@ -627,11 +648,11 @@ const CakesComponent = () => {
                               className="position-sticky"
                               style={{ top: "20px" }}
                             >
-                              <div className="shadow-lg mt-3">
-                                <div className="card-body mt-3">
+                              <div className="shadow-lg mt-3" style={{ borderRadius: "15px", overflow: "hidden" }}>
+                                <div className="card-body mt-3" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white", borderRadius: "15px" }}>
                                   <div className="d-flex justify-content-between align-items-center shadow-none mb-2 rounded ">
-                                    <div>Total:</div>
-                                    <div>
+                                    <div style={{ fontSize: "18px", fontWeight: "bold" }}>Total:</div>
+                                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>
                                       ₹
                                       {parseFloat(
                                         sessionStorage.getItem(
@@ -656,7 +677,7 @@ const CakesComponent = () => {
                                 </div>
                               </div>
 
-                              <div className="shadow-lg">
+                              <div className="shadow-lg mt-3" style={{ borderRadius: "15px", overflow: "hidden" }}>
                                 <div className="card-body">
                                   <div
                                     className="accordion"
@@ -674,8 +695,12 @@ const CakesComponent = () => {
                                           data-bs-target="#collapseOne"
                                           aria-expanded="true"
                                           aria-controls="collapseOne"
+                                          style={{
+                                            fontWeight: "bold",
+                                            background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                                          }}
                                         >
-                                          Summary Details
+                                          📋 Summary Details
                                         </button>
                                       </h2>
                                       <div
@@ -690,10 +715,11 @@ const CakesComponent = () => {
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
+                                                marginBottom: "10px",
                                               }}
                                             >
                                               <div>
-                                                Theatre Price (
+                                                🎭 Theatre Price (
                                                 {sessionStorage.getItem(
                                                   "countPeople"
                                                 )}{" "}
@@ -711,10 +737,11 @@ const CakesComponent = () => {
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
+                                                marginBottom: "10px",
                                               }}
                                             >
                                               <div>
-                                                Occasions (
+                                                🎉 Occasions (
                                                 {sessionStorage.getItem(
                                                   "occasionName"
                                                 )}
@@ -732,13 +759,15 @@ const CakesComponent = () => {
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
+                                                marginBottom: "10px",
+                                                fontWeight: "bold",
                                               }}
                                             >
-                                              <div>Cakes:</div>
+                                              <div>🍰 Cakes:</div>
                                             </div>
                                             {selectedCakes.length === 0 ? (
                                               <div
-                                                style={{ marginBottom: "8px" }}
+                                                style={{ marginBottom: "8px", color: "#999" }}
                                               >
                                                 No cakes in the cart
                                               </div>
@@ -752,6 +781,7 @@ const CakesComponent = () => {
                                                       justifyContent:
                                                         "space-between",
                                                       marginBottom: "8px",
+                                                      fontSize: "14px",
                                                     }}
                                                   >
                                                     <div>
@@ -786,10 +816,6 @@ const CakesComponent = () => {
                                                           ] == 3
                                                         ? cake.price * 6
                                                         : 1 || 1}
-                                                      {/* {cake.price * selectedWeights[cake._id]} */}
-                                                      {/* {cake.quantity == "500"
-                                              ? cake.price
-                                              : cake.price} */}
                                                     </div>
                                                   </div>
                                                 )
@@ -803,9 +829,9 @@ const CakesComponent = () => {
                                                 marginBottom: "8px",
                                               }}
                                             >
-                                              <div>Addons</div>
+                                              <div>🎁 Addons</div>
                                               <div>
-                                                {sessionStorage.getItem(
+                                                ₹{sessionStorage.getItem(
                                                   "addons"
                                                 ) || 0}
                                               </div>
@@ -816,6 +842,8 @@ const CakesComponent = () => {
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
+                                                marginBottom: "10px",
+                                                fontWeight: "bold",
                                               }}
                                             >
                                               <div>Sub Total</div>
@@ -844,9 +872,10 @@ const CakesComponent = () => {
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
+                                                marginBottom: "10px",
                                               }}
                                             >
-                                              <div>Coupon Amount</div>
+                                              <div>🏷️ Coupon Amount</div>
                                               <div>
                                                 ₹
                                                 {parseFloat(
@@ -861,6 +890,10 @@ const CakesComponent = () => {
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
+                                                marginBottom: "10px",
+                                                fontWeight: "bold",
+                                                fontSize: "16px",
+                                                color: "#667eea",
                                               }}
                                             >
                                               <div>Total Amount</div>
@@ -900,15 +933,28 @@ const CakesComponent = () => {
                               <button
                                 type="submit"
                                 onClick={handleSubmit}
-                                className="btn bg-primary w-100 mt-2"
+                                className="btn w-100 mt-3"
                                 style={{
-                                  // backgroundColor: "#a020f0",
-                                  boxShadow: "none",
-                                  color: "black",
+                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                  boxShadow: "0 8px 20px rgba(102, 126, 234, 0.3)",
+                                  color: "white",
                                   border: "none",
+                                  borderRadius: "12px",
+                                  padding: "12px",
+                                  fontSize: "16px",
+                                  fontWeight: "600",
+                                  transition: "all 0.3s ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = "translateY(-2px)"
+                                  e.currentTarget.style.boxShadow = "0 12px 25px rgba(102, 126, 234, 0.4)"
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = "translateY(0)"
+                                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(102, 126, 234, 0.3)"
                                 }}
                               >
-                                Proceed
+                                Continue → 
                               </button>
                             </div>
                           </div>

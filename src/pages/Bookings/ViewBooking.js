@@ -647,7 +647,7 @@ function RecruitView() {
 
   const toggleGstModal = () => setGstModal(!gstModal);
 
-  // ✅ POS GST calculation (still needed for POS items)
+  // ✅ POS GST calculation with safety check
   const calculatePosGST = useCallback(() => {
     if (!OrderDetails?.products || OrderDetails.products.length === 0) {
       return {
@@ -661,9 +661,14 @@ function RecruitView() {
 
     let totalWithoutGST = 0;
     OrderDetails.products.forEach(item => {
-      const amount = parseFloat(item.amount || 0);
-      const quantity = parseFloat(item.quantity || 1);
-      totalWithoutGST += amount * quantity;
+      // ✅ Safety check - skip if item or amount is undefined
+      if (item && item.amount !== undefined && item.amount !== null) {
+        const amount = parseFloat(item.amount || 0);
+        const quantity = parseFloat(item.quantity || 1);
+        if (!isNaN(amount) && !isNaN(quantity)) {
+          totalWithoutGST += amount * quantity;
+        }
+      }
     });
 
     const cgst = totalWithoutGST * 0.025;
@@ -680,6 +685,7 @@ function RecruitView() {
     };
   }, [OrderDetails?.products]);
 
+
   // ✅ Calculate GRAND TOTAL
   const calculateInvoiceGrandTotal = useCallback(() => {
     const bookingTotal = parseFloat(form?.totalPrice || 0);
@@ -688,16 +694,19 @@ function RecruitView() {
     return grandTotal;
   }, [form?.totalPrice, calculatePosGST]);
 
-  // ✅ Calculate DUE AMOUNT
-  const calculateInvoiceDueAmount = useCallback(() => {
-    const grandTotal = calculateInvoiceGrandTotal();
-    const advancePayment = parseFloat(form?.advancePayment || 0);
-    const walletRedeemedAmount = bookingWalletRedemption.amount || 0;
+// ✅ Calculate DUE AMOUNT (including offered discount)
+const calculateInvoiceDueAmount = useCallback(() => {
+  const grandTotal = calculateInvoiceGrandTotal();
+  const advancePayment = parseFloat(form?.advancePayment || 0);
+  const offeredDiscount = parseFloat(form?.offeredDiscount || 0);
+  const walletRedeemedAmount = bookingWalletRedemption.amount || 0;
 
-    let dueAmount = grandTotal - advancePayment;
+  // Grand Total minus Advance Paid minus Offered Discount
+  let dueAmount = grandTotal - advancePayment - offeredDiscount;
 
-    return Math.max(0, dueAmount);
-  }, [calculateInvoiceGrandTotal, form?.advancePayment, bookingWalletRedemption.amount]);
+  return Math.max(0, dueAmount);
+}, [calculateInvoiceGrandTotal, form?.advancePayment, form?.offeredDiscount, bookingWalletRedemption.amount]);
+
 
   // 🔹 Format wallet points
   const formatWalletPoints = (points) => {
@@ -734,7 +743,7 @@ function RecruitView() {
       const showGST = type === "withGST" ? "true" : "false";
 
       const response = await axios.post(
-        `http://localhost:5091/v1/carnivalApi/admin/booking/invoice/${BookingId}?showGST=${showGST}`,
+        `https://api.carnivalcastle.com/v1/carnivalApi/admin/booking/invoice/${BookingId}?showGST=${showGST}`,
         {},
         {
           responseType: 'blob',
@@ -799,7 +808,7 @@ function RecruitView() {
       const showGST = type === "withGST" ? "true" : "false";
 
       const response = await axios.post(
-        `http://localhost:5091/v1/carnivalApi/admin/booking/invoice/${BookingId}?showGST=${showGST}`,
+        `https://api.carnivalcastle.com/v1/carnivalApi/admin/booking/invoice/${BookingId}?showGST=${showGST}`,
         {},
         {
           responseType: 'blob',
@@ -947,6 +956,244 @@ function RecruitView() {
     }
   };
 
+  // ========== NEW: POS Product Edit Function ==========
+  const [editPosProductModal, setEditPosProductModal] = useState(false);
+  const [editPosProductData, setEditPosProductData] = useState(null);
+  const [editPosProductIndex, setEditPosProductIndex] = useState(null);
+
+  const handleEditPosProduct = (product, index) => {
+    setEditPosProductData({ ...product });
+    setEditPosProductIndex(index);
+    setEditPosProductModal(true);
+  };
+
+  // const handleSavePosProduct = async () => {
+  //   const result = await Swal.fire({
+  //     title: 'Update POS Product?',
+  //     text: 'Are you sure you want to update this POS product?',
+  //     icon: 'question',
+  //     showCancelButton: true,
+  //     confirmButtonText: 'Yes, update it!',
+  //     cancelButtonText: 'No, cancel'
+  //   });
+
+  //   if (!result.isConfirmed) {
+  //     return;
+  //   }
+
+  //   const bookingId = sessionStorage.getItem("BookingId");
+  //   if (!bookingId) {
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Booking ID Missing',
+  //       text: 'Booking ID is missing. Please try again.',
+  //     });
+  //     return;
+  //   }
+
+  //   try {
+  //     // Prepare updated products array
+  //     const updatedProducts = [...OrderDetails.products];
+  //     updatedProducts[editPosProductIndex] = {
+  //       ...editPosProductData,
+  //       amount: parseFloat(editPosProductData.amount),
+  //       quantity: parseFloat(editPosProductData.quantity)
+  //     };
+
+  //     const response = await axios.put(
+  //       `https://api.carnivalcastle.com/v1/carnivalApi/admin/order/updateposproduct/${bookingId}`,
+  //       {
+  //         products: updatedProducts
+  //       },
+  //       {
+  //         headers: { Authorization: `Bearer ${datas}` }
+  //       }
+  //     );
+
+  //     if (response.data && response.data.success) {
+  //       setOrderDetails({
+  //         ...OrderDetails,
+  //         products: updatedProducts
+  //       });
+
+  //       setEditPosProductModal(false);
+  //       setEditPosProductData(null);
+  //       setEditPosProductIndex(null);
+
+  //       Swal.fire({
+  //         icon: 'success',
+  //         title: 'Success!',
+  //         text: 'POS product updated successfully!',
+  //       });
+
+  //       // Refresh order details
+  //       fetchOrderDetails();
+  //     } else {
+  //       Swal.fire({
+  //         icon: 'error',
+  //         title: 'Failed',
+  //         text: response.data.message || 'Failed to update POS product.',
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating POS product:", error);
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Error',
+  //       text: error.response?.data?.message || 'Something went wrong while updating the POS product.',
+  //     });
+  //   }
+  // };
+
+  // Updated Delete Function
+  const handleDeletePosProduct = async (productId, index) => {
+    const result = await Swal.fire({
+      title: 'Delete POS Product?',
+      text: 'Are you sure you want to delete this POS product?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'No, cancel',
+      confirmButtonColor: '#d33',
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    const bookingId = sessionStorage.getItem("BookingId");
+    if (!bookingId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Booking ID Missing',
+        text: 'Booking ID is missing. Please try again.',
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.delete(
+        `https://api.carnivalcastle.com/v1/carnivalApi/admin/orderadmin/deleteposproduct`,
+        {
+          data: {
+            bookingId: bookingId,
+            productId: productId
+          },
+          headers: { Authorization: `Bearer ${datas}` }
+        }
+      );
+
+      if (response.data && response.data.success) {
+        // Remove the product from the local state
+        const updatedProducts = OrderDetails.products.filter((_, i) => i !== index);
+        setOrderDetails({
+          ...OrderDetails,
+          products: updatedProducts
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'POS product has been deleted successfully!',
+        });
+
+        // Refresh order details to get updated totals
+        fetchOrderDetails();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed',
+          text: response.data.message || 'Failed to delete POS product.',
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting POS product:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Something went wrong while deleting the POS product.',
+      });
+    }
+  };
+
+  // Updated Edit Function
+  const handleSavePosProduct = async () => {
+    const result = await Swal.fire({
+      title: 'Update POS Product?',
+      text: 'Are you sure you want to update this POS product?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, update it!',
+      cancelButtonText: 'No, cancel'
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    const bookingId = sessionStorage.getItem("BookingId");
+    if (!bookingId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Booking ID Missing',
+        text: 'Booking ID is missing. Please try again.',
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.put(
+        `https://api.carnivalcastle.com/v1/carnivalApi/admin/orderadmin/editposproduct`,
+        {
+          bookingId: bookingId,
+          productId: editPosProductData._id,
+          quantity: parseFloat(editPosProductData.quantity),
+          amount: parseFloat(editPosProductData.amount),
+          stockName: editPosProductData.stockName
+        },
+        {
+          headers: { Authorization: `Bearer ${datas}` }
+        }
+      );
+
+      if (response.data && response.data.success) {
+        // Update the product in the local state
+        const updatedProducts = [...OrderDetails.products];
+        updatedProducts[editPosProductIndex] = response.data.product;
+
+        setOrderDetails({
+          ...OrderDetails,
+          products: updatedProducts,
+          subAmount: response.data.order.subAmount,
+          totalPrice: response.data.order.totalPrice,
+          tax: response.data.order.tax
+        });
+
+        setEditPosProductModal(false);
+        setEditPosProductData(null);
+        setEditPosProductIndex(null);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'POS product updated successfully!',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed',
+          text: response.data.message || 'Failed to update POS product.',
+        });
+      }
+    } catch (error) {
+      console.error("Error updating POS product:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Something went wrong while updating the POS product.',
+      });
+    }
+  };
   const Bookingid = async () => {
     const result = await Swal.fire({
       title: 'Open POS?',
@@ -1809,52 +2056,58 @@ function RecruitView() {
       return;
     }
 
-    console.log('Delete:', data._id);
-    if (type === "addon") {
-      const updatedAddOns = AddOns.filter((_, i) => i !== index);
-      setAddOns(updatedAddOns);
-      Swal.fire('Deleted!', 'Product has been deleted.', 'success');
-    } else if (type === "combo") {
-      const updatedProducts = Products.filter((_, i) => i !== index);
-      setProducts(updatedProducts);
-      Swal.fire('Deleted!', 'Product has been deleted.', 'success');
-    }
-  };
-
-  const handleDeletePosProduct = async (productId) => {
-    const result = await Swal.fire({
-      title: 'Delete Product?',
-      text: 'Are you sure you want to delete this POS product?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel',
-      confirmButtonColor: '#d33',
-    });
-
-    if (!result.isConfirmed) {
+    const bookingId = sessionStorage.getItem("BookingId");
+    if (!bookingId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Booking ID Missing',
+        text: 'Booking ID is missing. Please try again.',
+      });
       return;
     }
 
-    console.log('Delete POS Product:', productId);
-    Swal.fire('Deleted!', 'POS product has been deleted.', 'success');
-  };
+    try {
+      // Call API to delete product from backend
+      const response = await axios.delete(
+        `https://api.carnivalcastle.com/v1/carnivalApi/admin/booking/deletebookingproducts/${bookingId}/${data._id}`,
+        {
+          headers: { Authorization: `Bearer ${datas}` }
+        }
+      );
 
-  const handleEditPosProduct = async (product) => {
-    const result = await Swal.fire({
-      title: 'Edit Product?',
-      text: 'Are you sure you want to edit this POS product?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, edit it!',
-      cancelButtonText: 'No, cancel'
-    });
+      if (response.data && response.data.success) {
+        // Update local state after successful deletion
+        if (type === "addon") {
+          const updatedAddOns = AddOns.filter((_, i) => i !== index);
+          setAddOns(updatedAddOns);
+        } else if (type === "combo") {
+          const updatedProducts = Products.filter((_, i) => i !== index);
+          setProducts(updatedProducts);
+        }
 
-    if (!result.isConfirmed) {
-      return;
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'Product has been deleted successfully!',
+        });
+
+        // Refresh booking data to get updated totals
+        GetBooking();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed',
+          text: response.data?.message || 'Failed to delete product.',
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Something went wrong while deleting the product.',
+      });
     }
-
-    console.log('Edit:', product);
   };
 
   const updateOccasionAPI = async (bookingId, occasionId) => {
@@ -1925,7 +2178,7 @@ function RecruitView() {
       }
 
       const response = await axios.put(
-        'http://localhost:5091/v1/carnivalApi/admin/booking/addoffereddiscount',
+        'https://api.carnivalcastle.com/v1/carnivalApi/admin/booking/addoffereddiscount',
         {
           bookingId: bookingId,
           offeredDiscount: parseFloat(offeredDiscountValue)
@@ -3289,7 +3542,7 @@ function RecruitView() {
 
                       <tr className="text-center">
                         <th><strong>DUE PAYMENT</strong></th>
-                        <td><strong>₹{formatCurrency(form?.remainingAmount || 0)}</strong></td>
+                        <td><strong>₹{formatCurrency(calculateInvoiceDueAmount())}</strong></td>
                       </tr>
                       <tr className="text-center">
                         <th>Extra Added Persons</th>
@@ -3644,7 +3897,7 @@ function RecruitView() {
             </CardBody>
           </Card>
 
-          {/* POS Products with GST */}
+          {/* POS Products with GST - UPDATED WITH EDIT AND DELETE FUNCTIONS */}
           <Card>
             <CardBody>
               <h5 className="text-primary mb-3">Ordered POS Products (5% GST: 2.5% CGST + 2.5% SGST) - Matches Invoice:</h5>
@@ -3667,15 +3920,22 @@ function RecruitView() {
                     </thead>
                     <tbody>
                       {OrderDetails.products.map((product, index) => {
+                        // ✅ Skip if product is undefined or null
+                        if (!product) return null;
+
                         const unitPrice = parseFloat(product.amount || 0);
                         const quantity = parseFloat(product.quantity || 1);
+
+                        // ✅ Skip if invalid numbers
+                        if (isNaN(unitPrice) || isNaN(quantity)) return null;
+
                         const totalWithoutGST = unitPrice * quantity;
                         const cgst = totalWithoutGST * 0.025;
                         const sgst = totalWithoutGST * 0.025;
                         const totalWithGST = totalWithoutGST + cgst + sgst;
 
                         return (
-                          <tr key={product._id} className="text-center">
+                          <tr key={product._id || index} className="text-center">
                             <td>{index + 1}</td>
                             <td>{product.stockName || "N/A"}</td>
                             <td>{quantity}</td>
@@ -3687,13 +3947,13 @@ function RecruitView() {
                             <td>
                               <button
                                 className="btn btn-sm btn-warning me-2"
-                                onClick={() => handleEditPosProduct(product)}
+                                onClick={() => handleEditPosProduct(product, index)}
                               >
                                 Edit
                               </button>
                               <button
                                 className="btn btn-sm btn-danger"
-                                onClick={() => handleDeletePosProduct(product._id)}
+                                onClick={() => handleDeletePosProduct(product._id, index)}
                               >
                                 Delete
                               </button>
@@ -3719,6 +3979,84 @@ function RecruitView() {
               )}
             </CardBody>
           </Card>
+
+          {/* Edit POS Product Modal */}
+          <Modal isOpen={editPosProductModal} toggle={() => setEditPosProductModal(false)}>
+            <ModalHeader toggle={() => setEditPosProductModal(false)}>
+              Edit POS Product
+            </ModalHeader>
+            <ModalBody>
+              {editPosProductData && (
+                <Form>
+                  <FormGroup>
+                    <Label>Product Name</Label>
+                    <Input
+                      type="text"
+                      value={editPosProductData.stockName || ""}
+                      onChange={(e) => setEditPosProductData({ ...editPosProductData, stockName: e.target.value })}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      value={editPosProductData.quantity || 1}
+                      onChange={(e) => setEditPosProductData({ ...editPosProductData, quantity: parseFloat(e.target.value) })}
+                      min="1"
+                      step="1"
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Unit Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={editPosProductData.amount || 0}
+                      onChange={(e) => setEditPosProductData({ ...editPosProductData, amount: parseFloat(e.target.value) })}
+                      min="0"
+                      step="0.01"
+                    />
+                  </FormGroup>
+
+                  {editPosProductData.quantity && editPosProductData.amount && (
+                    <div className="alert alert-info">
+                      <div className="d-flex justify-content-between">
+                        <span>Total (Without GST):</span>
+                        <strong>₹{formatCurrency(editPosProductData.quantity * editPosProductData.amount)}</strong>
+                      </div>
+                      <div className="d-flex justify-content-between">
+                        <span>CGST @2.5%:</span>
+                        <strong>+ ₹{formatCurrency((editPosProductData.quantity * editPosProductData.amount) * 0.025)}</strong>
+                      </div>
+                      <div className="d-flex justify-content-between">
+                        <span>SGST @2.5%:</span>
+                        <strong>+ ₹{formatCurrency((editPosProductData.quantity * editPosProductData.amount) * 0.025)}</strong>
+                      </div>
+                      <hr />
+                      <div className="d-flex justify-content-between">
+                        <strong>Total (With 5% GST):</strong>
+                        <strong className="text-success">₹{formatCurrency((editPosProductData.quantity * editPosProductData.amount) * 1.05)}</strong>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="d-flex justify-content-end gap-2 mt-3">
+                    <Button
+                      color="secondary"
+                      onClick={() => setEditPosProductModal(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      color="primary"
+                      onClick={handleSavePosProduct}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </Form>
+              )}
+            </ModalBody>
+          </Modal>
 
           <Card>
             <CardBody className="mt-3 mb-3">

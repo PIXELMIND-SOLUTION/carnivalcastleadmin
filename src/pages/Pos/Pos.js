@@ -66,8 +66,8 @@ const EcommerceCheckout = () => {
   const [products, setproducts] = useState([])
   const [products1, setproducts1] = useState([])
   const [ordercount, setordercount] = useState(1)
+  const [orderResponse, setOrderResponse] = useState(null)
 
-  // Calculate subtotal without tax
   const caramout = products.map(
     data => parseFloat(data.price) * parseFloat(data.quantity)
   )
@@ -81,7 +81,19 @@ const EcommerceCheckout = () => {
   }, 0)
   
   const [sumtax, setsumtax] = useState(0)
-  const taxvalue = (subamount * sumtax) / 100 
+  
+  const calculateTotalTax = () => {
+    let totalTax = 0
+    products.forEach(product => {
+      const productTotal = parseFloat(product.price) * parseFloat(product.quantity)
+      const taxRate = parseFloat(product.tax || sumtax)
+      const taxAmount = (productTotal * taxRate) / 100
+      totalTax += taxAmount
+    })
+    return totalTax
+  }
+  
+  const taxvalue = calculateTotalTax()
 
   const getAlltaxes = () => {
     var token = datas
@@ -102,7 +114,6 @@ const EcommerceCheckout = () => {
     var filtered = products.filter(function (item) {
       return item._id !== _id
     })
-
     setproducts(filtered)
   }
 
@@ -233,8 +244,8 @@ const EcommerceCheckout = () => {
   const [totalPrice, settotalPrice] = useState([])
 
   useEffect(() => {
-    const totamount = parseFloat(subamount) + parseFloat((taxvalue).toFixed(2)) -
-      parseFloat(form2.couponAmount == "" || form2.couponAmount == undefined? 0: form2.couponAmount)
+    const totamount = parseFloat(subamount) + parseFloat(taxvalue) -
+      parseFloat(form2.couponAmount == "" || form2.couponAmount == undefined ? 0 : form2.couponAmount)
     settotalPrice(parseFloat(totamount).toFixed(2))
   }, [subamount, taxvalue, form2.couponAmount])
 
@@ -258,7 +269,6 @@ const EcommerceCheckout = () => {
     setbalnceamss(parseFloat(balnceam).toFixed(2))
   }
 
-  // get all function
   const getAllCategories = () => {
     var token = datas
     axios
@@ -288,7 +298,6 @@ const EcommerceCheckout = () => {
   }
 
   const [activeCategory, setActiveCategory] = useState(null)
-
   const [subsearch, setsubsearch] = useState([])
 
   const getAllSubcategories = async data => {
@@ -307,7 +316,6 @@ const EcommerceCheckout = () => {
       })
   }
 
-  // get all search function
   const getAllsearch = e => {
     const bodydata = { categoryId: subsearch._id || category1._id }
     var token = datas
@@ -343,7 +351,7 @@ const EcommerceCheckout = () => {
           image: data.image,
           subCategoryName: data.subCategoryName,
           price: data.price,
-          tax: data.tax || sumtax, // Use product tax if available, else global tax
+          tax: data.tax || sumtax,
           quantity: 1,
         }
         return [...prevProducts, resdata]
@@ -355,30 +363,29 @@ const EcommerceCheckout = () => {
     e.preventDefault()
     setbtnshows(true)
     
-    // Calculate product data with proper tax and total price
     const productData = products.map((data, index) => {
       const subtotal = parseFloat(data.price) * parseFloat(data.quantity);
-      const taxAmount = (subtotal * parseFloat(data.tax || sumtax)) / 100;
+      const taxRate = parseFloat(data.tax || sumtax);
+      const taxAmount = (subtotal * taxRate) / 100;
       const totalWithTax = subtotal + taxAmount;
       
       return {
         productId: data._id,
-        productName: data.subCategory,
+        productName: data.subCategoryName,
         quantity: data.quantity,
-        tax: data.tax || sumtax, // Send tax percentage
+        tax: taxAmount.toFixed(2),
         price: parseFloat(data.price).toFixed(2),
-        totalprice: totalWithTax.toFixed(2), // Price with tax included
+        subtotal: parseFloat(subtotal).toFixed(2),
+        totalprice: totalWithTax.toFixed(2),
       }
     })
 
     const bodydata = {
       bookingId: sessionStorage.getItem("BookID"),
-      subAmount: subamount,
+      subAmount: parseFloat(subamount).toFixed(2),
       couponAmount: form2.length == 0 ? 0 : parseFloat(form2.couponAmount).toFixed(2) || 0,
-      tax: parseFloat(taxvalue).toFixed(2), // Total tax amount
-      totalPrice: totalPrice.length == 0 
-        ? parseFloat(parseFloat(subamount) + parseFloat(taxvalue)).toFixed(2)
-        : totalPrice,
+      tax: parseFloat(taxvalue).toFixed(2),
+      totalPrice: totalPrice,
       products: productData,
       moneyType: monytypes.moneyType || "Cash",
       cashPrice: monytypes.moneyType == "Cash" ? totalPrice : exctra.cashPrice || 0,
@@ -397,8 +404,10 @@ const EcommerceCheckout = () => {
         res => {
           if (res.status === 200) {
             toast(res?.data?.message)
-            setinvoice(res?.data?.order)
-            setproducts1(res?.data?.order?.products)
+            console.log("Full Response:", res?.data);
+            setOrderResponse(res?.data)
+            setinvoice(res?.data?.order || {})
+            setproducts1(res?.data?.order?.products || [])
             setmodal_small(false)
             sessionStorage.setItem("orderid", res.data._id)
             setmodal_small2(true)
@@ -422,7 +431,6 @@ const EcommerceCheckout = () => {
   }
 
   const [Bookings, setBookings] = useState([])
-
   const [date, setDate] = useState(sessionStorage.getItem("bookingdate"))
 
   const handleChanges = e => {
@@ -447,11 +455,45 @@ const EcommerceCheckout = () => {
   var data = JSON.parse(gets)
   var Roles = data?.rolesAndPermission[0]
 
+  const calculateTaxBreakdown = () => {
+    const taxMap = new Map()
+    products.forEach(product => {
+      const productTotal = parseFloat(product.price) * parseFloat(product.quantity)
+      const taxRate = parseFloat(product.tax || sumtax)
+      const taxAmount = (productTotal * taxRate) / 100
+      
+      if (taxMap.has(taxRate)) {
+        taxMap.set(taxRate, taxMap.get(taxRate) + taxAmount)
+      } else {
+        taxMap.set(taxRate, taxAmount)
+      }
+    })
+    return taxMap
+  }
+
+  // Calculate totals from products1 or orderResponse
+  const getCalculatedTotals = () => {
+    const productList = products1?.length > 0 ? products1 : orderResponse?.order?.products || [];
+    let calcSubtotal = 0;
+    let calcTax = 0;
+    let calcTotal = 0;
+    
+    productList.forEach(p => {
+      const baseAmount = parseFloat(p.amount || p.price) * parseFloat(p.quantity);
+      const totalAmount = parseFloat(p.totalprice || (baseAmount * 1.05));
+      const taxAmount = totalAmount - baseAmount;
+      calcSubtotal += baseAmount;
+      calcTax += taxAmount;
+      calcTotal += totalAmount;
+    });
+    
+    return { calcSubtotal, calcTax, calcTotal };
+  }
+
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* Render Breadcrumb */}
           <Breadcrumbs title="Carnival Castle Admin" breadcrumbItem="Pos" />
           <Row>
             <Col>
@@ -669,27 +711,25 @@ const EcommerceCheckout = () => {
                             <tbody>
                               {products.map((product, index) => {
                                 const productTotal = parseFloat(product.price) * parseFloat(product.quantity);
-                                const taxAmount = (productTotal * parseFloat(product.tax || sumtax)) / 100;
+                                const taxRate = parseFloat(product.tax || sumtax);
+                                const taxAmount = (productTotal * taxRate) / 100;
                                 const totalWithTax = productTotal + taxAmount;
                                 
                                 return (
                                   <tr key={product._id}>
-                                    <td>
+                                    <td style={{ width: "70px" }}>
                                       <img
                                         src={URLS.Base + product.image}
                                         alt="product-img"
                                         title="product-img"
                                         className="avatar-md"
-                                        style={{ objectFit: "cover" }}
+                                        style={{ objectFit: "cover", width: "50px", height: "50px", borderRadius: "8px" }}
                                       />
                                     </td>
                                     <td>
                                       <h5 className="font-size-14 text-truncate">
                                         {product.subCategoryName.length > 10
-                                          ? product.subCategoryName.substring(
-                                              0,
-                                              10
-                                            ) + "..."
+                                          ? product.subCategoryName.substring(0, 10) + "..."
                                           : product.subCategoryName}
                                       </h5>
                                       <p className="mb-0">
@@ -699,7 +739,7 @@ const EcommerceCheckout = () => {
                                         </span>
                                       </p>
                                       <small className="text-muted">
-                                        Base: ₹{productTotal.toFixed(2)} + Tax: ₹{taxAmount.toFixed(2)} ({product.tax || sumtax}%)
+                                        Base: ₹{productTotal.toFixed(2)} + Tax: ₹{taxAmount.toFixed(2)} ({taxRate}%)
                                       </small>
                                       <div style={{ width: "120px" }}>
                                         <div className="input-group mt-2">
@@ -707,30 +747,26 @@ const EcommerceCheckout = () => {
                                             <button
                                               type="button"
                                               className="btn-primary rounded-left"
-                                              onClick={() =>
-                                                countDown(index, product.quantity)
-                                              }
+                                              style={{ padding: "0 8px", border: "none", borderRadius: "4px 0 0 4px" }}
+                                              onClick={() => countDown(index, product.quantity)}
                                             >
                                               -
                                             </button>
                                           </div>
                                           <Input
-                                            style={{ height: "26px" }}
+                                            style={{ height: "30px", textAlign: "center", width: "50px", padding: "0" }}
                                             className="text-center"
                                             type="number"
                                             value={products[index].quantity}
                                             name="quantity"
-                                            onChange={e => {
-                                              quantityChange(e, index)
-                                            }}
+                                            onChange={e => quantityChange(e, index)}
                                           />
                                           <div className="input-group-prepend">
                                             <button
                                               type="button"
                                               className="btn-primary rounded-right"
-                                              onClick={() =>
-                                                countUP(index, product.quantity)
-                                              }
+                                              style={{ padding: "0 8px", border: "none", borderRadius: "0 4px 4px 0" }}
+                                              onClick={() => countUP(index, product.quantity)}
                                             >
                                               +
                                             </button>
@@ -738,15 +774,12 @@ const EcommerceCheckout = () => {
                                         </div>
                                       </div>
                                     </td>
-                                    <td>
+                                    <td style={{ width: "40px" }}>
                                       <Link
                                         to="#"
-                                        onClick={() =>
-                                          removeCartItem(product._id)
-                                        }
+                                        onClick={() => removeCartItem(product._id)}
                                         className="action-icon text-danger"
                                       >
-                                        {" "}
                                         <i className="mdi mdi-trash-can font-size-18" />
                                       </Link>
                                     </td>
@@ -766,14 +799,37 @@ const EcommerceCheckout = () => {
                                 ₹ {parseFloat(subamount).toFixed(2)}
                               </td>
                             </tr>
-                            <tr>
-                              <td> Tax ({sumtax}%): </td>
-                              <td className="text-end">₹ {taxvalue.toFixed(2)}</td>
-                            </tr>
-
+                            {/* Tax Breakdown with CGST + SGST */}
+                            {Array.from(calculateTaxBreakdown().entries()).map(([rate, amount]) => {
+                              const halfTax = amount / 2;
+                              return (
+                                <React.Fragment key={rate}>
+                                  <tr>
+                                    <td>CGST ({rate/2}%):</td>
+                                    <td className="text-end">₹ {halfTax.toFixed(2)}</td>
+                                  </tr>
+                                  <tr>
+                                    <td>SGST ({rate/2}%):</td>
+                                    <td className="text-end">₹ {halfTax.toFixed(2)}</td>
+                                  </tr>
+                                </React.Fragment>
+                              );
+                            })}
+                            {calculateTaxBreakdown().size === 0 && sumtax > 0 && (
+                              <>
+                                <tr>
+                                  <td>CGST ({sumtax/2}%):</td>
+                                  <td className="text-end">₹ {(taxvalue / 2).toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                  <td>SGST ({sumtax/2}%):</td>
+                                  <td className="text-end">₹ {(taxvalue / 2).toFixed(2)}</td>
+                                </tr>
+                              </>
+                            )}
                             <tr>
                               <th>Total (with Tax):</th>
-                              <th className="text-end">₹ {totalPrice} </th>
+                              <th className="text-end">₹ {totalPrice}</th>
                             </tr>
                           </tbody>
                         </Table>
@@ -784,18 +840,13 @@ const EcommerceCheckout = () => {
                             <div className="form-check">
                               <input
                                 type="radio"
-                                onChange={e => {
-                                  handleChangeAmount(e)
-                                }}
+                                onChange={handleChangeAmount}
                                 id="Cash"
                                 className="form-check-input"
                                 value="Cash"
                                 name="moneyType"
                               />
-                              <label
-                                className="form-check-label"
-                                htmlFor="Cash"
-                              >
+                              <label className="form-check-label" htmlFor="Cash">
                                 Cash
                               </label>
                             </div>
@@ -804,18 +855,13 @@ const EcommerceCheckout = () => {
                             <div className="form-check">
                               <input
                                 type="radio"
-                                onChange={e => {
-                                  handleChangeAmount(e)
-                                }}
+                                onChange={handleChangeAmount}
                                 id="Online"
                                 className="form-check-input"
                                 value="Card"
                                 name="moneyType"
                               />
-                              <label
-                                className="form-check-label"
-                                htmlFor="Online"
-                              >
+                              <label className="form-check-label" htmlFor="Online">
                                 Online
                               </label>
                             </div>
@@ -824,18 +870,13 @@ const EcommerceCheckout = () => {
                             <div className="form-check">
                               <input
                                 type="radio"
-                                onChange={e => {
-                                  handleChangeAmount(e)
-                                }}
+                                onChange={handleChangeAmount}
                                 id="Split"
                                 className="form-check-input"
                                 value="Split"
                                 name="moneyType"
                               />
-                              <label
-                                className="form-check-label"
-                                htmlFor="Split"
-                              >
+                              <label className="form-check-label" htmlFor="Split">
                                 Split
                               </label>
                             </div>
@@ -845,9 +886,7 @@ const EcommerceCheckout = () => {
                           <Row className="mt-3">
                             <Col>
                               <Input
-                                onChange={e => {
-                                  handleChangeexctra(e)
-                                }}
+                                onChange={handleChangeexctra}
                                 max={totalPrice}
                                 value={exctra.cashPrice}
                                 required
@@ -889,23 +928,14 @@ const EcommerceCheckout = () => {
         <ToastContainer />
         <Modal
           isOpen={modal_small2}
-          toggle={() => {
-            tog_small2()
-          }}
+          toggle={tog_small2}
         >
           <div className="modal-body">
             <div className="">
               <Button onClick={printsecctions} className="m-2" color="success">
-                <i className="bx bx-printer"></i> Proceed If thermal printer is
-                ready
+                <i className="bx bx-printer"></i> Proceed If thermal printer is ready
               </Button>
-              <Button
-                onClick={() => {
-                  modalclose()
-                }}
-                className="m-2"
-                color="danger"
-              >
+              <Button onClick={modalclose} className="m-2" color="danger">
                 <i className="bx bx-left-arrow-alt"></i> Cancel
               </Button>
               <hr />
@@ -917,110 +947,147 @@ const EcommerceCheckout = () => {
                   <div className="modal-body">
                     <div id="printableArea">
                       <div className="initial-38-1">
-                        <div style={{borderBottomStyle: "dashed"}} className="text-center mb-2">
-                          <h5
-                            style={{ fontSize: "14px" }}
-                            className="text-break initial-38-4"
-                          >
+                        <div style={{ borderBottomStyle: "dashed" }} className="text-center mb-2">
+                          <h5 style={{ fontSize: "14px" }} className="text-break initial-38-4">
                             <b>Carnival Castle Private Theatres</b>
                           </h5>
-                          <h5
-                            style={{ fontSize: "13px" }}
-                            className="text-break initial-38-4"
-                          >
-                            4th floor, Garden View Enclave, Plot No.16, behind
-                            Pista House, Kondapur, Hyderabad, Telangana, 500084
+                          <h5 style={{ fontSize: "13px" }} className="text-break initial-38-4">
+                            4th floor, Garden View Enclave, Plot No.16, behind Pista House, Kondapur, Hyderabad, Telangana, 500084
                           </h5>
-                          <h5
-                            style={{ fontSize: "13px" }}
-                            className="text-break initial-38-4"
-                          >
-                            Receipt: {invoice.orderNo}
+                          <h5 style={{ fontSize: "13px" }} className="text-break initial-38-4">
+                            Receipt: {invoice?.orderNo || orderResponse?.order?.orderNo || "N/A"}
                           </h5>
-                          <h5
-                            style={{ fontSize: "13px" }}
-                            className="text-break initial-38-4"
-                          >
-                            Date: {invoice.date} - {invoice.time}
+                          <h5 style={{ fontSize: "13px" }} className="text-break initial-38-4">
+                            Date: {invoice?.date || orderResponse?.order?.date} - {invoice?.time || orderResponse?.order?.time}
                           </h5>
                         </div>
-                       
-                        <div style={{borderBottomStyle: "dashed", margin:"0px"}} className="row text-center">
+
+                        <div style={{ borderBottomStyle: "dashed", margin: "0px" }} className="row text-center">
                           <div className="col-4">
-                            <h6> ITEM</h6>
+                            <h6>ITEM</h6>
                           </div>
                           <div className="col-4">
-                            <h6> QTY</h6>
+                            <h6>QTY</h6>
                           </div>
                           <div className="col-4">
-                            <h6> PRICE (incl. Tax)</h6>
+                            <h6>PRICE (incl. Tax)</h6>
                           </div>
                         </div>
-                        {products1?.map((data, key) => {
-                          const itemTotal = parseFloat(data.amount) * parseFloat(data.quantity);
-                          const taxAmount = (itemTotal * parseFloat(data.tax || sumtax)) / 100;
-                          const totalWithTax = itemTotal + taxAmount;
-                          
+                        
+                        {(products1?.length > 0 ? products1 : orderResponse?.order?.products || []).map((data, key) => {
+                          const totalWithTax = data.totalprice || 
+                            (parseFloat(data.amount || data.price) * parseFloat(data.quantity) * 1.05);
                           return (
                             <div key={key} className="row text-center">
                               <div className="col-4">
-                                <h6> {data.stockName}</h6>
+                                <h6>{data.stockName || data.productName}</h6>
                               </div>
                               <div className="col-4">
-                                <h6> {data.quantity}</h6>
+                                <h6>{data.quantity}</h6>
                               </div>
                               <div className="col-4">
-                                <h6> ₹{totalWithTax.toFixed(2)}</h6>
+                                <h6>₹{parseFloat(totalWithTax).toFixed(2)}</h6>
                               </div>
                             </div>
                           );
                         })}
 
-                        <div style={{borderTopStyle: "dashed"}} className="">
-                          <dl style={{ margin: "0px" }} className="row ">
+                        <div style={{ borderTopStyle: "dashed" }} className="">
+                          <dl style={{ margin: "0px" }} className="row">
                             <dt style={{ margin: "0px" }} className="col-8">
                               Subtotal (without Tax):
                             </dt>
                             <dd style={{ margin: "0px" }} className="col-4">
-                              ₹ {invoice.subAmount}
+                              ₹ {getCalculatedTotals().calcSubtotal.toFixed(2)}
                             </dd>
+
+                            {/* Show tax with CGST + SGST breakdown */}
+                            {(products1?.length > 0 || orderResponse?.order?.products?.length > 0) && (
+                              <>
+                                {(() => {
+                                  const productList = products1?.length > 0 ? products1 : orderResponse?.order?.products || [];
+                                  const taxMap = new Map();
+                                  productList.forEach(p => {
+                                    const baseAmount = parseFloat(p.amount || p.price) * parseFloat(p.quantity);
+                                    const totalAmount = parseFloat(p.totalprice || (baseAmount * 1.05));
+                                    const taxAmount = totalAmount - baseAmount;
+                                    let taxPercentage = 0;
+                                    if (baseAmount > 0) {
+                                      taxPercentage = ((taxAmount / baseAmount) * 100).toFixed(0);
+                                    }
+                                    if (taxMap.has(taxPercentage)) {
+                                      taxMap.set(taxPercentage, taxMap.get(taxPercentage) + taxAmount);
+                                    } else {
+                                      taxMap.set(taxPercentage, taxAmount);
+                                    }
+                                  });
+                                  
+                                  return Array.from(taxMap.entries()).map(([percentage, amount]) => {
+                                    const halfTax = amount / 2;
+                                    return (
+                                      <React.Fragment key={percentage}>
+                                        <dt style={{ margin: "0px" }} className="col-8">
+                                          CGST ({percentage/2}%):
+                                        </dt>
+                                        <dd style={{ margin: "0px" }} className="col-4">
+                                          ₹{halfTax.toFixed(2)}
+                                        </dd>
+                                        <dt style={{ margin: "0px" }} className="col-8">
+                                          SGST ({percentage/2}%):
+                                        </dt>
+                                        <dd style={{ margin: "0px" }} className="col-4">
+                                          ₹{halfTax.toFixed(2)}
+                                        </dd>
+                                      </React.Fragment>
+                                    );
+                                  });
+                                })()}
+                              </>
+                            )}
+
                             <dt style={{ margin: "0px" }} className="col-8">
-                              Discount :
+                              Discount:
                             </dt>
                             <dd style={{ margin: "0px" }} className="col-4">
-                              ₹{" "}
-                              {invoice.couponAmount == "NaN"
-                                ? 0
-                                : invoice.couponAmount}{" "}
+                              ₹ {invoice?.couponAmount == "NaN" ? 0 : (invoice?.couponAmount || orderResponse?.order?.couponAmount || 0)}
                             </dd>
+                            
                             <dt style={{ margin: "0px" }} className="col-8">
-                              Tax ({sumtax}%):
+                              Total Tax:
                             </dt>
                             <dd style={{ margin: "0px" }} className="col-4">
-                              ₹{invoice.tax}
-                              <hr
-                                style={{
-                                  marginBottom: "5px",
-                                  marginTop: "5px",
-                                }}
-                              />
+                              ₹{getCalculatedTotals().calcTax.toFixed(2)}
+                              <hr style={{ marginBottom: "5px", marginTop: "5px" }} />
                             </dd>
+                            
                             <dt className="col-8 font-20px">Total (with Tax):</dt>
                             <dd className="col-4 font-20px">
-                              ₹ {invoice.totalPrice}
+                              ₹ {getCalculatedTotals().calcTotal.toFixed(2)}
                             </dd>
+                            
                             <dt className="col-8 font-20px">Money Type:</dt>
                             <dd className="col-4 font-20px">
-                              {invoice.moneyType}
+                              {invoice?.moneyType || orderResponse?.order?.moneyType || "Cash"}
                             </dd>
+                            
+                            {(invoice?.cashPrice > 0 || orderResponse?.order?.cashPrice > 0) && (
+                              <>
+                                <dt className="col-8 font-20px">Cash Amount:</dt>
+                                <dd className="col-4 font-20px">₹ {invoice?.cashPrice || orderResponse?.order?.cashPrice}</dd>
+                              </>
+                            )}
+                            {(invoice?.onlinePrice > 0 || orderResponse?.order?.onlinePrice > 0) && (
+                              <>
+                                <dt className="col-8 font-20px">Online Amount:</dt>
+                                <dd className="col-4 font-20px">₹ {invoice?.onlinePrice || orderResponse?.order?.onlinePrice}</dd>
+                              </>
+                            )}
                           </dl>
-                          <h5  style={{borderTopStyle: "dashed", borderBottomStyle: "dashed",  fontSize: "14px" }}
-                            className="text-center "
-                          >
+                          <h5 style={{ borderTopStyle: "dashed", borderBottomStyle: "dashed", fontSize: "14px" }} className="text-center">
                             <span className="d-block my-2">"Thank You. Visit Again."</span>
                           </h5>
                           <span className="d-block text-center">
-                           Receipts by carnivalcastle.com
+                            Receipts by carnivalcastle.com
                           </span>
                         </div>
                       </div>
